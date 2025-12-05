@@ -1,0 +1,1251 @@
+{
+    "markdown": "LLMs4OL 2025: The 2nd Large Language Models for Ontology Learning Challenge at the 24th ISWC LLMs4OL 2025 Task Participant Papers TIB-OP will set DOI with \\TIBdoi \u00a9 Authors. This work is licensed under a Creative Commons Attribution 4.0 International License Submitted: 1970-01-01\n\n# **SBU-NLP at LL[Ms4OL 2025 Tasks A, B, and](https://creativecommons.org/licenses/by/4.0/) C: Stage-Wise Ontology Construction Through LLMs Without Any Training Procedure**\n\nRashin Rahnamoun<sup>1</sup> , Mehrnoush Shamsfard<sup>1</sup>\n\n<sup>1</sup>Shahid Beheshti University, Tehran, Iran \\*Correspondence: Rashin Ra[hna](https://orcid.org/0009-0006-3536-4893)moun, rahnamounrashin@[gm](https://orcid.org/0000-0002-7027-7529)ail.com\n\n**Abstract:** Automated ontology construction is a challenging task that traditionally requires extensive domain expertise, data preprocessing, and resource-intensive model training. While learning-based methods with fine-tuning are common, they often suffer from high computational costs and limited generalizability across domains. This paper explores a fully automated approach that leverages powerful large language models (LLMs) through prompt engineering, eliminating the need for training or fine-tuning. We participated in the LLMs4OL 2025 shared task, which includes four subtasks: extracting ontological terms and types (Text2Onto), assigning generalized types to terms (Term Typing), discovering taxonomic relations (Taxonomy Discovery), and extracting nontaxonomic semantic relations (Non-Taxonomic Relation Extraction). Our team focused on the first three tasks by using stratified random sampling, simple random sampling, and chunking-based strategies to include training sets in the prompts without limitations imposed by context window sizes. This simple yet general approach has proven effective across these tasks, enabling high-quality ontology construction without additional annotations or training. Additionally, we show that pretrained sentence embedding models ranging from 0.1B to 1.5B parameters perform comparably to a simple F1 token overlap baseline in taxonomy discovery, suggesting that embedding-based methods may not always offer significant advantages. Our findings highlight that promptbased strategies with modern LLMs enable efficient, scalable, and domain-independent ontology construction, providing a promising alternative to traditional, resource-heavy methods.\n\n**Keywords:** Automated Ontology Construction, Large Language Models, Prompt Engineering\n\n### **1 Introduction**\n\nAutomated ontology construction is a complex and multifaceted task that traditionally involves extensive domain knowledge, data preprocessing, and model training. While learning-based methods\u2014particularly those involving model fine-tuning\u2014have become common, they often require significant computational resources and are not easily generalizable across domains. Ideally, a high-quality, fully automated approach that bypasses model training and fine-tuning would offer a more efficient and accessible alternative.\n\nThe emergence of powerful large language models (LLMs) presents a promising opportunity to replace or supplement human experts in ontology creation. These models, with their ability to understand and generate structured knowledge from text, enable a new generation of ontology engineering tools that are fast, cost-effective, and domainindependent.\n\nTo explore the viability of LLM-based ontology construction, we participated in the LLMs4OL 2025 shared task, the second iteration of this competition following its debut in 2024 [1]\u2013[3]. The 2025 edition includes four distinct tasks: Task A \u2013 Text2Onto, which involves extracting ontological terms and their types from raw text; Task B \u2013 Term Typing, which focuses on assigning generalized types to lexical terms; Task C \u2013 Taxonomy Discovery, which requires identifying taxonomic (is-a) relations between types; an[d](#page-13-0) T[as](#page-13-1)k D \u2013 Non-Taxonomic Relation Extraction, which involves extracting other semantic relations between types.\n\nOur team focused on Tasks A, B, and C, applying a unified prompting-based methodology that avoids any form of supervised training or fine-tuning. Instead, we leveraged prompt engineering strategies informed by sampling techniques from the provided training data. This approach allowed us to generate high-quality ontological structures using zero-shot or few-shot prompting, without incorporating any external knowledge or additional annotations.\n\nFurthermore, in the Taxonomy Discovery subtask, we show that pretrained sentence embedding models (ranging from 0.1B to 1.5B parameters) perform comparably to a simple F1 token overlap baseline. This suggests that, in certain ontology tasks, embedding-based approaches may not provide a significant performance advantage over more lightweight lexical methods.\n\nThese findings highlight the practical benefits of prompt-based strategies in ontology learning tasks, especially when aiming to reduce reliance on computationally expensive training pipelines. Our results demonstrate that, with careful prompt engineering, modern LLMs can effectively perform complex ontology construction tasks in a scalable and resource-efficient manner. This opens the door to more accessible ontology generation workflows, particularly in low-resource or time-constrained settings. Overall, our work contributes to the growing evidence that LLMs, when coupled with generalizable prompting strategies, can serve as a viable and efficient alternative to traditional learning-based ontology engineering approaches.\n\n### **2 Datasets**\n\nThe datasets presented in Table 1 correspond to those we actually used to produce the results reported in this paper. Note that these may not cover all datasets available within the respective tasks, but only those included in our experiments for Tasks A (Text2Onto), B (Term Typing), an[d C](#page-2-0) (Taxonomy Discovery).\n\n**Task A** involves ontology extraction from domain-specific corpora in ecology, engineering, and scholarly domains.\n\n**Task B** focuses on semantic term typing with datasets from OBI and SWEET taxonomies, along with two blind test sets (B5 and B6) evaluated without training data.\n\n**Task C** targets taxonomy discovery using ontologies such as OBI, Schema.org, SWEET, and MatOnto. Here, test data counts represent unique types rather than document IDs.\n\n<span id=\"page-2-0\"></span>\n\n| Task & Dataset                          | Training Data | Testing Data |\n|-----------------------------------------|---------------|--------------|\n| Task A - Text2Onto (Ecology)            | 2,000         | 483          |\n| Task A - Text2Onto (Engineering)        | 83            | 21           |\n| Task A - Text2Onto (Scholarly)          | 40            | 10           |\n| Task B - Term Typing (OBI)              | 201           | 87           |\n| Task B - Term Typing (MatOnto)          | 85            | 37           |\n| Task B - Term Typing (SWEET)            | 1,707         | 626          |\n| Task B - Term Typing (B5-Blind)         | \u2013             | 46           |\n| Task B - Term Typing (B6-Blind)         | \u2013             | 288          |\n| Task C - Taxonomy Discovery (OBI)       | 10,003        | 2,821        |\n| Task C - Taxonomy Discovery (SchemaOrg) | 742           | 359          |\n| Task C - Taxonomy Discovery (SWEET)     | 11,626        | 4,118        |\n| Task C - Taxonomy Discovery (MatOnto)   | 885           | 370          |\n| Task C - Taxonomy Discovery (PO)        | 2005          | 916          |\n\n*Table 1. Training and test data statistics for Tasks A, B, and C. Train/test numbers indicate unique document IDs, except for Task C test sets, where values refer to the number of unique types.*\n\nThe datasets used across the three tasks exhibit significant variability in size and complexity, which poses unique challenges for ontology learning methods. Task A's Text2Onto datasets differ notably in scale, with the ecology domain providing the largest corpus, potentially offering richer contextual information for ontology extraction compared to the relatively small engineering and scholarly datasets. Task B's Term Typing datasets include both well-established ontologies like OBI and SWEET with substantial training samples, alongside blind test sets (B5 and B6) that require robust generalization without prior training data. This setup tests the adaptability of models to unseen domains.\n\nTask C's Taxonomy Discovery datasets are generally large, with tens of thousands of training instances reflecting comprehensive domain coverage. The distinction that test sets for Task C represent unique types rather than documents highlights the need for models to accurately infer hierarchical relationships at a fine-grained semantic level.\n\n## **3 Methodology**\n\n### **3.1 Task A - Text2Onto**\n\nIn this task, our goal is to extract terms and their corresponding types from given sets of documents. We employ two different prompt formats, each designed specifically for term extraction and type extraction, respectively, to effectively leverage LLMs. Also, two forms of prompting were used. Our approach leverages in-context learning by utilizing few-shot examples based on the training sets.\n\n### **3.1.1 Term Extraction**\n\n**Preprocessing.** Let *D* = *{d*1*, d*2*, . . . , d<sup>N</sup> }* denote the set of documents, where each document *d<sup>i</sup>* is associated with an identifier *id<sup>i</sup>* , title *t<sup>i</sup>* , and text content *x<sup>i</sup>* . Let *T* = *{\u03c4*1*, \u03c4*2*, . . . , \u03c4M}* be the set of extracted terms. We define a mapping function\n\n$$f: \\mathcal{T} \\to 2^{\\mathcal{D}} \\tag{1}$$\n\nwhich maps each term  $\\tau_j$  to a subset of documents  $f(\\tau_j) \\subseteq D$  in which the term appears. Using this, we construct the inverse mapping\n\n$$g: \\mathcal{D} \\to 2^{\\mathcal{T}} \\tag{2}$$\n\nsuch that for each document  $d_i$ , the associated term set is\n\n$$g(d_i) = \\{\\tau_j \\mid d_i \\in f(\\tau_j)\\}.$$\n(3)\n\nFrom  $\\mathcal{D}$ , a random subset  $\\mathcal{D}_s \\subseteq \\mathcal{D}$  of size  $|\\mathcal{D}_s| = k$  (where k is the sample size) is selected to form the prompt examples. Each sampled document  $d_i \\in \\mathcal{D}_s$  is paired with its corresponding terms  $g(d_i)$ , which together constitute the few-shot exemplars for guiding the large language models. This preprocessing step ensures that the exemplars are representative and diverse, improving the efficacy of in-context learning for ontology construction.\n\n**Simple Random Sampling.** In the preprocessing step, a random subset  $\\mathcal{D}_s \\subseteq \\mathcal{D}$  of size  $|\\mathcal{D}_s| = k$  is selected without replacement from the full document set  $\\mathcal{D} = \\{d_1, d_2, \\ldots, d_N\\}$ , where  $N = |\\mathcal{D}|$ . The sampling is uniform, meaning each possible subset of size k has an equal probability of being chosen. To ensure the sample size does not exceed the number of available documents, we set  $k = \\min(k', N)$ , where k' is the desired sample size. Formally, the probability of selecting a particular subset  $\\mathcal{D}_s$  is given by:\n\n$$P(\\mathcal{D}_s) = \\frac{1}{Nk},\\tag{4}$$\n\nwhere Nk is the binomial coefficient representing the number of ways to choose k documents from the N documents in  $\\mathcal{D}$ .\n\n**Stratified Random Sampling.** In the preprocessing step, a random subset  $\\mathcal{D}_s \\subseteq \\mathcal{D}$  of size  $|\\mathcal{D}_s| = k$  is selected without replacement from the full document set  $\\mathcal{D} = \\{d_1, d_2, \\ldots, d_N\\}$ , where  $N = |\\mathcal{D}|$ . To capture the diversity of the dataset, we employ a stratified random sampling approach based on a feature space  $\\mathcal{F} = \\{f_1, f_2, \\ldots, f_m\\}$ , where features may include document topics, lengths, or semantic embeddings. The dataset  $\\mathcal{D}$  is partitioned into L disjoint strata  $\\{\\mathcal{S}_1, \\mathcal{S}_2, \\ldots, \\mathcal{S}_L\\}$  such that  $\\mathcal{D} = \\bigcup_{l=1}^L \\mathcal{S}_l$  and  $\\mathcal{S}_l \\cap \\mathcal{S}_{l'} = \\emptyset$  for  $l \\neq l'$ . Each stratum  $\\mathcal{S}_l$  contains  $N_l = |\\mathcal{S}_l|$  documents, with proportion  $p_l = N_l/N$ .\n\nWithin each stratum  $S_l$ , a subset of  $k_l = \\lfloor k \\cdot p_l \\rfloor$  documents is sampled uniformly without replacement, ensuring the total sample size is approximately  $k = \\sum_{l=1}^{L} k_l$ . The probability of selecting a specific subset  $\\mathcal{D}_s = \\bigcup_{l=1}^{L} \\mathcal{D}_{s,l}$ , where  $\\mathcal{D}_{s,l} \\subseteq S_l$  and  $|\\mathcal{D}_{s,l}| = k_l$ , is given by:\n\n$$P(\\mathcal{D}_s) = \\prod_{l=1}^{L} \\frac{1}{N_l k_l},\\tag{5}$$\n\nwhere  $N_l k_l$  is the binomial coefficient representing the number of ways to choose  $k_l$  documents from the  $N_l$  documents in stratum  $S_l$ .\n\nFor each sampled document  $d_i \\in \\mathcal{D}_s$ , the corresponding set of terms  $g(d_i)$  is retrieved, forming the few-shot exemplars provided to the large language models. This stratified sampling approach ensures that the prompt examples respect the context window constraints of large language models while preserving dataset variability through proportional representation of diverse document features.\n\n**Prompt Construction.** Using the sampled subset  $D_s$  obtained from either simple or stratified random sampling, we construct prompts to extract relevant terms for ontology\n\ncreation. Each document *d<sup>i</sup> \u2208 D<sup>s</sup>* contains an identifier, title, and text, denoted as *d<sup>i</sup> .*id, *di .*title, and *d<sup>i</sup> .*text, respectively. The terms *g*(*di*) associated with each document are retrieved from a precomputed mapping, forming few-shot exemplars. These exemplars are formatted as a sequence of document-term pairs within the prompt, enclosed in designated markers to guide the language model.\n\nFor each document in the dataset *D*, a prompt is constructed by combining an example prompt, derived from the sampled subset *Ds*, with the document's title and text. The prompt instructs the language model to extract all relevant terms that could form the basis of an ontology, formatted as a valid Python list of terms, e.g., [ *\u2032* term1*\u2032 , \u2032* term2*\u2032* ], or an empty list [] if no terms are found. The specific prompt structure is as follows:\n\n| Prompt for Ontology Term Extraction                                                                                                                                                                                                                                                                                                                                                                                             |\n|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| {Sampled subset Ds}<br>[var]<br>Title:<br>{title}<br>Text:<br>{text}<br>[var]<br>Extract all relevant terms that could form the basis of an ontology<br>from the above document.<br>Format the output as:<br>['term1', 'term2',]<br>from texts enclosed<br>in [var][var] tags.<br>Ensure the output is a valid Python list string, e.g., ['term1',<br>'term2'].<br>If no terms are found, return [].<br>Do not write ```python. |\n\n*Figure 1. Prompt used for ontology term extraction from sampled subset Ds. It directs the model to extract terms enclosed in [var] tags and return them as a valid Python list.*\n\nThis process ensures that the language model leverages the diversity of the sampled exemplars while respecting context window constraints, enabling robust term extraction for ontology development.\n\n#### **3.1.2 Type Extraction**\n\nThe preprocessing and sampling procedures for type extraction follow the same methodology as the term extraction task. Specifically, documents are parsed and a representative subset *D<sup>s</sup> \u2286 D* is selected via random sampling to construct few-shot exemplars. The only difference lies in the label mapping step: instead of associating documents with ontology terms, each document *d<sup>i</sup> \u2208 D* is linked to its corresponding types from a predefined ontology or type schema. These type annotations are obtained using a matching function over the available structured metadata. Once the document-to-type pairs are established, prompt construction proceeds analogously to the term extraction setting, by formatting the sampled documents and their types into in-context examples suitable for guiding the large language model in zero- or few-shot classification.\n\n**Type-to-Document Matching.** Let *D* = *{d*1*, d*2*, . . . , d<sup>N</sup> }* denote the set of documents, where each document *d<sup>i</sup>* is a structured tuple *d<sup>i</sup>* = (*id<sup>i</sup> , ti , xi*), representing the identifier, title, and text content, respectively. Let *T* = *{\u03c4*1*, \u03c4*2*, . . . , \u03c4M}* be the predefined set of candidate types.\n\nWe define a matching function:\n\n$$match(\\tau_j, d_i) = \\{1, \\text{ if } \\tau_j \\in FullWordMatch(t_i + x_i); 0, \\text{ otherwise}$$\n (6)\n\nwhere FullWordMatch refers to case-sensitive, full-token string search using regular expressions:\n\n$$FullWordMatch(s) = \\{\\tau_j \\in \\mathcal{T} \\mid re.search(\\b\\tau_j\\b, s) \\neq \\emptyset\\}$$\n(7)\n\nThe resulting inverse mapping function *g* : *D \u2192* 2 *T* is then defined as:\n\n$$g(d_i) = \\{\\tau_j \\in \\mathcal{T} \\mid \\mathsf{match}(\\tau_j, d_i) = 1\\}$$\n(8)\n\nTo ensure one-to-one visibility in sampling and avoid repetition, a set of already matched terms is tracked during iteration:\n\n$$\\mathcal{T}_{\\mathsf{seen}} \\subseteq \\mathcal{T}, \\quad \\mathsf{such that for each } \\tau_j \\in \\mathcal{T}_{\\mathsf{seen}}, \\text{ only one } d_i \\text{ is shown.}$$\n (9)\n\nThis process results in each term *\u03c4<sup>j</sup>* being matched to a unique document *d<sup>i</sup>* where it first appears in a full-word form, ensuring unbiased, interpretable few-shot exemplars for prompt construction in the type extraction task.\n\n**Prompt Construction.** Similar to the ontology term extraction task, the few-shot prompt for type extraction is constructed using a sampled subset of documents *D<sup>s</sup> \u2286 D*. Each document *d<sup>i</sup> \u2208 D<sup>s</sup>* is paired with its associated types (concept classes) and wrapped with custom delimiters [var]...[var] to scope the relevant text. The prompt explicitly instructs the language model to extract only those type mentions that can serve as ontology classes, and to format the output as a valid Python list string. The final prompt template used during inference is presented below:\n\n```\nPrompt for Ontology Type Extraction\n{Sampled subset Ds}\n[var]\nTitle: {title}\nText: {text}\n[var]\nExtract all relevant types mentioned in the above document that\ncould serve as ontology classes. Only extract types found inside\n[var]...[var] tags.\nFormat the output as a valid Python list string, for example:\n['type1', 'type2'].\nIf no types are found, return an empty list: [].\nDo not provide any additional explanation or categorize the types.\nDo not write ```python.\n```\n\n*Figure 2. Prompt used for ontology type extraction from the sampled subset Ds. It instructs the model to extract type-level ontology class candidates from content within [var] tags and return them as a Python list.*\n\n#### **3.1.3 Batch Prompting**\n\nLet *D*test = *{d*1*, d*2*, . . . , d<sup>T</sup> }* denote the set of test documents, where each *d<sup>i</sup>* consists of a title *t<sup>i</sup>* and text content *x<sup>i</sup>* . Unlike standard prompting where each document *d<sup>i</sup>* is processed individually, we adopt a *batch prompting* strategy in which the entire set *D*test is passed to the LLM as a single concatenated prompt. Formally, we define the batch prompt *P*batch as:\n\n$$\\mathcal{P}_{\\mathsf{batch}} = [\\texttt{Instruction}] \\parallel \\parallel_{i=1}^{T} [\\texttt{var}] t_i x_i [\\texttt{var}],$$\n (10)\n\nwhere *\u2225* denotes string concatenation, and [var] markers delimit the start and end of each document block. The output of the LLM is denoted as:\n\n$$\\mathcal{Y}_{\\text{batch}} = f_{\\text{LLM}}(\\mathcal{P}_{\\text{batch}}),$$\n (11)\n\nwhere *Y*batch is a flat list of terms (or types) extracted from all documents jointly. The output is parsed and stored in a plain text file, with each predicted term written on a separate line.\n\n```\nBatch Prompt for Ontology Term or Type Extraction\n{Sampled subset Ds}\nBased on these samples, extract all relevant terms or types from\nthe provided JSONL file.\nYour output must be a plain .txt file. Write each extracted item\n(term or type) on a separate line. The output should follow this\nformat:\nterm1(type1)\nterm2(type2)\nterm3(type3)\n\u2026\nDo not include any extra formatting, explanations, or bullet\npoints. Only return newline-separated terms or types.\n```\n\n*Figure 3. Batch prompt used for extracting ontology terms or types from a sampled JSONL dataset subset Ds. The model is instructed to output plain text with one term-type pair per line, without additional formatting or explanation.*\n\n#### **3.2 Task B - Term Typing**\n\nIn this task, the objective is to identify the correct type(s) for each input term. Formally, let *T* = *{\u03c4*1*, \u03c4*2*, . . . , \u03c4M}* denote the set of ontology types extracted from the training data, and let *V* = *{v*1*, v*2*, . . . , vL}* be the set of unique ontology terms. For each type *\u03c4<sup>j</sup> \u2208 T* , a set of representative terms *E<sup>j</sup> \u2286 V* is selected using the same stratified and simple sampling strategy employed in Task A.\n\nThe prompt examples are then constructed by pairing each type *\u03c4<sup>j</sup>* with a small random sample of its associated terms *E<sup>j</sup>* , ensuring that all types in *T* are represented in the prompt. For the test term *v <sup>\u2217</sup> \u2208 V*, the goal is to predict the correct set of types:\n\n$$h(v^*) \\subseteq \\mathcal{T} \\tag{12}$$\n\nusing few-shot in-context learning, where *h* : *V \u2192* 2 *T* is the type prediction function induced by the LLM.\n\n![](_page_7_Figure_1.jpeg)\n\n*Figure 4. Prompt used for assigning ontology types to given terms from a sampled subset D<sup>T</sup> . The model is instructed to choose only from a predefined list of types and format them using quotation marks, with multiple types separated by commas.*\n\n#### **3.2.1 Batch Prompting**\n\nIn the batch prompting setting, rather than sending one term at a time to the language model, a complete list of test terms is given as a single input, accompanied by the preconstructed examples. The language model is then expected to identify the appropriate types for each term in the batch. The output is expected to be a valid JSON list, where each object contains an id and a corresponding list of types associated with the term.\n\n```\nPrompt for Batch Type Classification\nFrom the sample terms provided for each type, identify the type(s)\nof the term in a second JSON file.\nA term can have more than one type.\nOutput file must be in this format:\n[\n{ \"id\": \"TT_465e8904\", \"types\": [ \"type1\" ] },\n{ \"id\": \"TT_01c7707e\", \"types\": [ \"type2\", \"type3\" ] },\n{ \"id\": \"TT_b20cb478\", \"types\": [ \"type4\" ] }\n]\nThe id must be taken from the input JSON file.\nYou must find the type(s) for each term in the JSON file.\nSample terms for each type are provided in a text file.\nTypes must be selected only from the sample list.\n```\n\n*Figure 5. Prompt used for batch classification of ontology types for terms in a JSON file. The model is guided to assign one or more types per term based on provided samples, producing structured output in JSON format using the term IDs and a fixed list of allowed types.*\n\n#### **3.2.2 Blind**\n\nIn blind subtasks, no training samples or inclusion files are available. Instead, a text file containing the complete list of types is provided. These types are used directly within the prompt construction for the blind challenge, as shown in the example below. This approach allows the model to rely solely on the type list without being exposed to any prior example-term associations.\n\nPrompt for Blind Type Classification\nIdentify the type(s) of the term in a second JSON file.\nA term can have more than one type.\nOutput file must be in this format:\n[\n{ \"id\": \"TT\\_465e8904\", \"types\": [ \"type1\" ] },\n{ \"id\": \"TT\\_01c7707e\", \"types\": [ \"type2\", \"type3\" ] },\n{ \"id\": \"TT\\_b20cb478\", \"types\": [ \"type4\" ] }\n]\nThe id must be taken from the input JSON file.\nYou must find the type(s) for each term in the JSON file.\nTypes must be selected only from the types list.\n\n*Figure 6.* Prompt for blind classification of ontology types for terms based on a JSON file. The model is instructed to assign one or more types per term using the term IDs, with output formatted as a JSON array and types restricted to a predefined list.\n\n#### 3.3 Task C - Taxonomy Discovery\n\nFor subtask C, the objective is to identify all parent\u2013child relationships from a given text file containing ontology terms. Unlike other tasks, only the batch prompting strategy was applicable for this task due to the nature of the relation extraction process, which makes it impractical to query the language model API separately for each possible pair. A major challenge in this task was the size of the input file, which exceeded the maximum context length of large language models. Our sampling strategies were not effective in this task. To address this limitation, we adopted a *chunking strategy*, whereby the input data was split into manageable segments that fit within the model's context window.\n\nFurthermore, for the **OBI** dataset, where many parent and child terms exhibit tokenlevel overlap, we employed a sentence embedding similarity comparison strategy. This technique helps capture semantic relationships even when lexical similarity is high, thereby improving the accuracy of parent-child link detection in overlapping term scenarios.\n\n#### 3.3.1 Chunking Strategy\n\nLet  $\\mathcal{P} = \\{(p_i, c_i)\\}_{i=1}^M$  denote the full set of potential parent\u2013child pairs extracted from the source data, where  $p_i$  is a parent concept and  $c_i$  is its corresponding child. Due to the context window limit  $L_{\\text{max}}$  of a given large language model (LLM), we partition the full input  $\\mathcal{I}$  into disjoint chunks:\n\n$$\\mathcal{I} = \\bigcup_{j=1}^{K} \\mathcal{I}_j, \\quad \\text{with} \\quad |\\mathcal{I}_j| \\le L_{\\max}, \\quad \\mathcal{I}_j \\cap \\mathcal{I}_{j'} = \\emptyset \\text{ for } j \\ne j'.$$\n (13)\n\nEach chunk  $\\mathcal{I}_j$  is independently submitted to the LLM to extract a local set of candidate relations:\n\n$$\\mathcal{P}_j = \\mathsf{LLM}(\\mathcal{I}_j), \\quad \\text{for } j = 1, 2, \\dots, K.$$\n(14)\n\nThe final output set is constructed as the union of all extracted sets, followed by deduplication:\n\n$$\\mathcal{P}_{\\text{final}} = \\bigcup_{j=1}^{K} \\mathcal{P}_j, \\text{ with duplicates removed.}$$\n (15)\n\nThis process ensures that the full set of hierarchical relations is recovered as completely as possible under the constraint *L*max.\n\n#### **3.3.2 Batch Prompting**\n\nFor Task C, the batch prompting approach is employed with the chunking strategy described previously. Let the set of training pairs be partitioned into *N* disjoint chunks:\n\n$$\\mathcal{T} = \\bigcup_{i=1}^{N} \\mathcal{T}_{i}, \\quad \\mathcal{T}_{i} \\cap \\mathcal{T}_{j} = \\emptyset \\quad \\text{for } i \\neq j,$$\n (16)\n\nand the test data similarly partitioned into *M* disjoint chunks:\n\n$$S = \\bigcup_{j=1}^{M} S_j, \\quad S_j \\cap S_k = \\emptyset \\quad \\text{for } j \\neq k.$$\n (17)\n\nThe batch prompt is constructed by pairing each training chunk *T<sup>i</sup>* with each test chunk *Sj* , resulting in a total of\n\n$$N \\times M$$\n (18)\n\nprompts to be processed.\n\nThis ensures that all possible combinations of training and test chunks are covered within the context window limitations of the language model.\n\n```\nPrompt for Parent-Child Relation Extraction\nFrom this file, extract all parent and child relations for all\npairs like examples in JSON file.\nOutput file must be in this format:\n[\n{ \"parent\": \"parent1\", \"child\": \"child1\" },\n{ \"parent\": \"parent2\", \"child\": \"child2\" },\n{ \"parent\": \"parent3\", \"child\": \"child3\" },\n{ \"parent\": \"parent4\", \"child\": \"child4\" }\n]\nYou must find all parent-child pairs from the input file.\nEach pair should be extracted and formatted as shown above.\n```\n\n*Figure 7. Prompt for extracting parent-child relations from a JSON file. The model is instructed to identify and output all parent-child pairs in the specified JSON format.*\n\n#### **3.3.3 OBI subtask**\n\nIn this subtask, due to the high lexical overlap between child and parent terms in the training set, we employed a sentence embedding\u2013based strategy. Specifically, we computed the embedding vector **e***<sup>c</sup>* for each child term using a pretrained sentence embedding model. Then, for each possible parent term *p* in the training set, we computed its embedding vector **e***<sup>p</sup>* and calculated the cosine similarity.\n\nThe parent term with the highest cosine similarity score was selected as the most likely\n\nparent of the given child. This method leverages semantic similarity beyond surfacelevel token overlap and is particularly useful in datasets with high lexical redundancy, such as OBI.\n\n# **4 Experiments and Results**\n\nAll the reported results were calculated using the CodaLab platform of the competition<sup>1</sup> . The performance was measured and reported using the F1 score, which is calculated as:\n\n$$F1-score = 2 \\times \\frac{\\text{Precision} \\times \\text{Recall}}{\\text{Precision} + \\text{Recall}}$$\n(19)\n\nThe experiments utilize several state-of-the-art language models, including gemini-2.5-flash-preview-05-20 [4], grok-3 and its lighter variant grok-3-mini [5], deepseek-chat-v3-0324 [6], gpt-4o-mini [7], and claude-sonnet-4 [8]. These models provide a diverse range of architectures and capabilities, and their respective citations are included to acknowledge their o[rig](#page-13-2)inal contributions.\n\n### **4.1 Task A - Text2Onto**\n\n| 4.1<br>Task A - Text2Onto |\n|---------------------------|\n|                           |\n\n<span id=\"page-10-0\"></span>\n\n|                                                  | Table 2. F1 scores for various models across SubTasks A1 (Term Extraction) and A2 (Type Extraction)<br>for different domains. The best-performing model for each subtask is highlighted in bold. |              |\n|--------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|\n|                                                  |                                                                                                                                                                                                  |              |\n| SubTask                                          | Model                                                                                                                                                                                            | F1 Score     |\n| Ecology                                          |                                                                                                                                                                                                  |              |\n| A2.1 - Type Extraction                           | Gemini                                                                                                                                                                                           | 0.62         |\n| A2.1 - Type Extraction                           | Deepseek code v3                                                                                                                                                                                 | 0.47         |\n| A2.1 - Type Extraction                           | Claude Sonnet 4 (Batch)                                                                                                                                                                          | 0.66         |\n| Scholarly                                        |                                                                                                                                                                                                  |              |\n| A1.2 - Term Extraction                           | Gemini                                                                                                                                                                                           | 0.42         |\n| A1.2 - Term Extraction                           | Deepseek code v3                                                                                                                                                                                 | 0.34         |\n| A1.2 - Term Extraction<br>A1.2 - Term Extraction | Grok 3 mini<br>GPT_4o mini                                                                                                                                                                       | 0.39<br>0.35 |\n| A1.2 - Term Extraction                           | Claude Sonnet 4 (Batch)                                                                                                                                                                          | 0.45         |\n| A2.2 - Type Extraction                           | Gemini                                                                                                                                                                                           | 0.47         |\n| A2.2 - Type Extraction                           | Deepseek code v3                                                                                                                                                                                 | 0.43         |\n| A2.2 - Type Extraction                           | Claude Sonnet 4 (Batch)                                                                                                                                                                          | 0.61         |\n| A2.2 - Type Extraction                           | Grok 3 (Batch)                                                                                                                                                                                   | 0.65         |\n| Engineering                                      |                                                                                                                                                                                                  |              |\n| A1.3 - Term Extraction                           | Gemini                                                                                                                                                                                           | 0.57         |\n| A1.3 - Term Extraction                           | Deepseek code v3                                                                                                                                                                                 | 0.58         |\n| A1.3 - Term Extraction                           | GPT_4o mini                                                                                                                                                                                      | 0.51         |\n| A1.3 - Term Extraction                           | Claude Sonnet 4 (Batch)                                                                                                                                                                          | 0.45         |\n| A1.3 - Term Extraction                           | Deepseek code v3 (Batch)                                                                                                                                                                         | 0.57         |\n| A1.3 - Term Extraction                           | Deepseek + Claude (Batch)                                                                                                                                                                        | 0.58         |\n| A2.3 - Type Extraction                           | Grok 3 (Batch)                                                                                                                                                                                   | 0.62         |\n| A2.3 - Type Extraction                           | Gemini                                                                                                                                                                                           | 0.32         |\n| A2.3 - Type Extraction<br>A2.3 - Type Extraction | Deepseek code v3<br>Claude Sonnet 4 (Batch)                                                                                                                                                      | 0.18<br>0.66 |\n| A2.3 - Type Extraction                           | Grok 3 (Batch)                                                                                                                                                                                   | 0.30         |\n\n1 https://codalab.lisn.upsaclay.fr/competitions/23065\n\nAs shown in Table 2, batch-prompted models (indicated by \"Batch\") often outperform or match non-batch models in several subtasks. Claude Sonnet 4 (Batch) and Deepseek code v3 (Batch) exhibit strong performance, particularly in the scholarly and engineering domains. Stratified sampling was applied wherever feasible to ensure balanced training and e[va](#page-10-0)luation across term types and domains. Overall, the Gemini model and Claude Sonnet 4 (Batch) consistently achieve the highest F1 scores in both term and type extraction tasks.\n\n### **4.2 Task B - Term Typing**\n\n<span id=\"page-11-0\"></span>\n\n|                                      | Table 3. F1 scores for various models on Term Typing subtasks (Task B). |              |\n|--------------------------------------|-------------------------------------------------------------------------|--------------|\n|                                      |                                                                         |              |\n| SubTask                              | Model                                                                   | F1 Score     |\n| OBI                                  |                                                                         |              |\n| B1 - Term Typing<br>B1 - Term Typing | Deepseek code v3<br>Gemini                                              | 0.75<br>0.72 |\n| B1 - Term Typing                     | GPT_4o mini                                                             | 0.56         |\n| B1 - Term Typing                     | Claude Sonnet 4 (Batch)                                                 | 0.94         |\n| MatOnto                              |                                                                         |              |\n| B2 - Term Typing                     | Deepseek code v3                                                        | 0.38         |\n| B2 - Term Typing                     | Gemini                                                                  | 0.41         |\n| B2 - Term Typing                     | GPT_4o mini                                                             | 0.44         |\n| B2 - Term Typing                     | Claude Sonnet 4 (Batch)                                                 | 0.57         |\n| SWEET                                |                                                                         |              |\n| B3 - Term Typing                     | Deepseek code v3                                                        | 0.44         |\n| B3 - Term Typing                     | Gemini                                                                  | 0.48         |\n| B3 - Term Typing                     | GPT_4o mini                                                             | 0.28         |\n| B3 - Term Typing                     | Claude Sonnet 4 (Batch)                                                 | 0.69         |\n| Blind<br>B4 - Term Typing            | Claude Sonnet 4 (Batch)                                                 | 0.76         |\n\n*Table 3. F1 scores for various models on Term Typing subtasks (Task B).*\n\nAs illustrated in Table 3, models utilizing batch prompting (labeled \"Batch\") generally outperform or closely rival their non-batch counterparts across the Term Typing subtasks. Claude Sonnet 4 (Batch) consistently delivers top F1 scores across all domains, including both standar[d](#page-11-0) and blind test sets.\n\n### **4.3 Task C - Taxonomy Discovery**\n\n*Table 4. F1 scores for various methods on Taxonomy Discovery subtasks (Task C). Batch-prompted methods are indicated accordingly.*\n\n<span id=\"page-12-0\"></span>\n\n| methods are indicated accordingly.                 | Table 4. F1 scores for various methods on Taxonomy Discovery subtasks (Task C). Batch-prompted |              |\n|----------------------------------------------------|------------------------------------------------------------------------------------------------|--------------|\n|                                                    |                                                                                                |              |\n| SubTask                                            | Method                                                                                         | F1 Score     |\n| OBI                                                |                                                                                                |              |\n| C1 - Taxonomy Discovery                            | F1 token overlap                                                                               | 0.34         |\n| C1 - Taxonomy Discovery                            | Bge-m3                                                                                         | 0.35         |\n| C1 - Taxonomy Discovery                            | All-mpnet-base-v2                                                                              | 0.35         |\n| C1 - Taxonomy Discovery                            | All-MiniLM-L6-v2                                                                               | 0.35         |\n| C1 - Taxonomy Discovery                            | NovaSearchstella_en_1.5B_v5                                                                    | 0.35         |\n| MatOnto                                            |                                                                                                |              |\n| C2 - Taxonomy Discovery<br>C2 - Taxonomy Discovery | Claude Sonnet 4 (Batch)<br>Grok 3 (Batch)                                                      | 0.66<br>0.37 |\n| SWEET                                              |                                                                                                |              |\n| C3 - Taxonomy Discovery                            | Claude Sonnet 4 (Batch)                                                                        | 0.5          |\n| SchemaOrg                                          |                                                                                                |              |\n| C5 - Taxonomy Discovery                            | Claude Sonnet 4 (Batch)                                                                        | 0.66         |\n\nAs shown in Table 4, performance on the OBI subtask indicates only marginal differences between the simple token overlap method and advanced sentence embedding techniques. Despite employing more sophisticated encoders such as bge-m3 [9], all-mpnet-base-v2 [10], all-MiniLM-L6-v2 [11], and NovaSearchstella\\_en\\_1.5B\\_v5 [12], F1 scores remain ti[gh](#page-12-0)tly clustered around the token overlap baseline. This suggests that for structured domains like OBI, token-level similarity still provides competitive results. However, in other subtasks such as MatOnto and SchemaOrg, batch-promp[te](#page-13-3)[d](#page-13-6) methods like Claude [So](#page-13-4)nnet 4 (Batch) sho[w c](#page-13-5)onsiderable performance gains.\n\n# **5 Conclusions**\n\nThis study demonstrates that effective prompt engineering strategies can mitigate the inherent limitations of LLMs arising from their restricted context windows. By employing such strategies, it is possible to utilize LLMs efficiently, circumventing the need for costly hardware and extensive, time-consuming training procedures. Coupled with the capabilities of contemporary powerful LLMs, these methods facilitate the fully automatic construction of high-quality ontologies. Furthermore, our findings indicate that sentence embedding\u2013based approaches do not significantly outperform simple F1 token overlap metrics, with similar results observed across a spectrum of pretrained models ranging from 1.5 billion to 0.1 billion parameters. These insights highlight promising directions for leveraging LLMs in knowledge representation tasks while optimizing resource usage.\n\n## **Limitations**\n\nAs most experiments were conducted under war conditions with limited internet connectivity. Consequently, single-prompt-based API tests were primarily used, many of which experienced connection errors. Due to these unstable testing conditions, the actual performance of the proposed methods is likely higher than what has been reported.\n\n# **Data availability statement**\n\nAll data used in this paper was based on the training data provided by the task organizers.\n\n# **Underlying and Related Material**\n\nThe code used in this work will be made available after the competition at the following repository: https://github.com/rarahnamoun/LLMs4OL-Challenge-ISWC-2025\n\n# **Author contributions**\n\n**Rashin Rahnamoun:** [Conceptualization, Methodology, Software, Validation, I](https://github.com/rarahnamoun/LLMs4OL-Challenge-ISWC-2025)nvestigation, Data Curation, Writing - Original Draft. **Mehrnoush Shamsfard:** Writing - Review Editing, Supervision.\n\n## **Competing interests**\n\nThe authors declare that they have no competing interests.\n\n## **References**\n\n- [1] H. B. Giglou, J. D'Souza, and S. Auer, \"Llms4ol: Large language models for ontology learning,\" *International Semantic Web Conference*, vol. 2023, pp. 408\u2013427, 2023.\n- [2] H. B. Giglou, J. D'Souza, and S. Auer, \"Llms4ol 2024 overview: The 1st large language models for ontology learning challenge,\" *arXiv preprint arXiv:2409.10146*, 2024.\n- <span id=\"page-13-0\"></span>[3] H. B. Giglou, J. D'Souza, S. Sadruddin, and S. Auer, \"Llms4ol 2024 datasets: Toward ontology learning with large language models,\" *Open Conference Proceedings*, vol. 4, pp. 17\u201330, 2024.\n- <span id=\"page-13-1\"></span>[4] \"Google/gemini-2.5-flash-preview-05-20.\" (2025), [Online]. Available: https://gemini. google.com/app (visited on 07/07/2025).\n- [5] \"X-ai/grok-3.\" (2025), [Online]. Available: https://grok.com/ (visited on 07/07/2025).\n- <span id=\"page-13-2\"></span>[6] \"Deepseek/deepseek-chat-v3-0324.\" (2025), [Online]. Available: http[s://huggingface.](https://gemini.google.com/app) [co/deepseek-ai](https://gemini.google.com/app)/DeepSeek-V3 (visited on 07/07/2025).\n- [7] \"Openai/gpt-4o-mini.\" (2025), [Online]. Available: [https://pla](https://grok.com/)tform.openai.com/docs/ models/gpt-4o-mini (visited on 07/07/2025).\n- [8] [\"Anthropic/claude-sonnet-4.\" \\(2](https://huggingface.co/deepseek-ai/DeepSeek-V3)025), [Online]. Available: https:[//www.anthropic.com/](https://huggingface.co/deepseek-ai/DeepSeek-V3) claude/sonnet (visited on 07/07/2025).\n- [9] [J. Chen, S. Xiao, P. Z](https://platform.openai.com/docs/models/gpt-4o-mini)hang, K. Luo, D. Lian, and [Z. Liu, \"M3-embedding: Multi-linguality,](https://platform.openai.com/docs/models/gpt-4o-mini) multi-functionality, multi-granularity text embeddings thro[ugh self-knowledge distillation,\"](https://www.anthropic.com/claude/sonnet) *[Findings of the A](https://www.anthropic.com/claude/sonnet)ssociation for Computational Linguistics: ACL 2024*, vol. 2024, pp. 2318\u2013 2335, Aug. 2024. DOI: 10.18653/v1/2024.findings-acl.137.\n- <span id=\"page-13-3\"></span>[10] \"All-mpnet-base-v2.\" (2025), [Online]. Available: https://huggingface.co/sentencetransformers/all-mpnet-base-v2 (visited on 07/07/2025).\n- [11] \"All-minilm-l6-v2.\" (202[5\\), \\[Online\\]. Available:](https://doi.org/10.18653/v1/2024.findings-acl.137) https : / / huggingface . co / sentence transformers/all-MiniLM-L6-v2 (visited on 0[7/07/2025\\).](https://huggingface.co/sentence-transformers/all-mpnet-base-v2)\n- <span id=\"page-13-6\"></span><span id=\"page-13-5\"></span><span id=\"page-13-4\"></span>[12] [D. Zhang, J. Li, Z. Zeng, and F. W](https://huggingface.co/sentence-transformers/all-mpnet-base-v2)ang, \"Jasper and stella: Distillation of sota embedding models,\" *arXiv preprint arXiv:2412.19048*[, Dec. 2025. \\[Online\\]. Available:](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) https : [//arxiv.org/abs/2412.19048](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2).",
+    "images": {
+        "_page_7_Figure_1.jpeg": {
+            "im": "<ImagingCore object at 0x7f6fdc69a7b0>",
+            "_mode": "RGB",
+            "_size": [
+                1112,
+                362
+            ],
+            "palette": null,
+            "info": {},
+            "readonly": 0,
+            "pyaccess": null,
+            "_exif": null
+        }
+    },
+    "metadata": {
+        "table_of_contents": [
+            {
+                "title": "SBU-NLP at LLMs4OL 2025 Tasks A, B, and C:\nStage-Wise Ontology Construction Through LLMs\nWithout Any Training Procedure",
+                "heading_level": null,
+                "page_id": 0,
+                "polygon": [
+                    [
+                        90.0966796875,
+                        121.5263671875
+                    ],
+                    [
+                        506.8125,
+                        121.5263671875
+                    ],
+                    [
+                        506.8125,
+                        186.8818359375
+                    ],
+                    [
+                        90.0966796875,
+                        186.8818359375
+                    ]
+                ]
+            },
+            {
+                "title": "1 Introduction",
+                "heading_level": null,
+                "page_id": 0,
+                "polygon": [
+                    [
+                        69.664306640625,
+                        613.3359375
+                    ],
+                    [
+                        171.0791015625,
+                        613.3359375
+                    ],
+                    [
+                        171.0791015625,
+                        629.7388763427734
+                    ],
+                    [
+                        69.664306640625,
+                        629.7388763427734
+                    ]
+                ]
+            },
+            {
+                "title": "2 Datasets",
+                "heading_level": null,
+                "page_id": 1,
+                "polygon": [
+                    [
+                        70.14990234375,
+                        524.390625
+                    ],
+                    [
+                        145.60400390625,
+                        524.390625
+                    ],
+                    [
+                        145.60400390625,
+                        538.9498138427734
+                    ],
+                    [
+                        70.14990234375,
+                        538.9498138427734
+                    ]
+                ]
+            },
+            {
+                "title": "3 Methodology",
+                "heading_level": null,
+                "page_id": 2,
+                "polygon": [
+                    [
+                        70.35302734375,
+                        525.0166015625
+                    ],
+                    [
+                        177.51953125,
+                        525.0166015625
+                    ],
+                    [
+                        177.51953125,
+                        541.52783203125
+                    ],
+                    [
+                        70.35302734375,
+                        541.52783203125
+                    ]
+                ]
+            },
+            {
+                "title": "3.1 Task A - Text2Onto",
+                "heading_level": null,
+                "page_id": 2,
+                "polygon": [
+                    [
+                        70.025634765625,
+                        551.3291015625
+                    ],
+                    [
+                        202.4013671875,
+                        551.3291015625
+                    ],
+                    [
+                        202.4013671875,
+                        566.9521484375
+                    ],
+                    [
+                        70.025634765625,
+                        566.9521484375
+                    ]
+                ]
+            },
+            {
+                "title": "3.1.1 Term Extraction",
+                "heading_level": null,
+                "page_id": 2,
+                "polygon": [
+                    [
+                        70.171142578125,
+                        661.923828125
+                    ],
+                    [
+                        184.9404296875,
+                        661.923828125
+                    ],
+                    [
+                        184.9404296875,
+                        676.724609375
+                    ],
+                    [
+                        70.171142578125,
+                        676.724609375
+                    ]
+                ]
+            },
+            {
+                "title": "3.1.2 Type Extraction",
+                "heading_level": null,
+                "page_id": 4,
+                "polygon": [
+                    [
+                        69.952880859375,
+                        538.1728515625
+                    ],
+                    [
+                        181.4482421875,
+                        538.1728515625
+                    ],
+                    [
+                        181.4482421875,
+                        552.1513671875
+                    ],
+                    [
+                        69.952880859375,
+                        552.1513671875
+                    ]
+                ]
+            },
+            {
+                "title": "3.1.3 Batch Prompting",
+                "heading_level": null,
+                "page_id": 5,
+                "polygon": [
+                    [
+                        69.952880859375,
+                        712.904296875
+                    ],
+                    [
+                        188.7236328125,
+                        712.904296875
+                    ],
+                    [
+                        188.7236328125,
+                        726.8828125
+                    ],
+                    [
+                        69.952880859375,
+                        726.8828125
+                    ]
+                ]
+            },
+            {
+                "title": "3.2 Task B - Term Typing",
+                "heading_level": null,
+                "page_id": 6,
+                "polygon": [
+                    [
+                        69.589111328125,
+                        520.0830078125
+                    ],
+                    [
+                        213.4599609375,
+                        520.0830078125
+                    ],
+                    [
+                        213.4599609375,
+                        534.0615234375
+                    ],
+                    [
+                        69.589111328125,
+                        534.0615234375
+                    ]
+                ]
+            },
+            {
+                "title": "3.2.1 Batch Prompting",
+                "heading_level": null,
+                "page_id": 7,
+                "polygon": [
+                    [
+                        69.91650390625,
+                        272.78662109375
+                    ],
+                    [
+                        188.578125,
+                        272.78662109375
+                    ],
+                    [
+                        188.578125,
+                        285.53173828125
+                    ],
+                    [
+                        69.91650390625,
+                        285.53173828125
+                    ]
+                ]
+            },
+            {
+                "title": "3.2.2 Blind",
+                "heading_level": null,
+                "page_id": 7,
+                "polygon": [
+                    [
+                        70.2802734375,
+                        642.6005859375
+                    ],
+                    [
+                        129.0654296875,
+                        642.6005859375
+                    ],
+                    [
+                        129.0654296875,
+                        655.0993194580078
+                    ],
+                    [
+                        70.2802734375,
+                        655.0993194580078
+                    ]
+                ]
+            },
+            {
+                "title": "3.3 Task C - Taxonomy Discovery",
+                "heading_level": null,
+                "page_id": 8,
+                "polygon": [
+                    [
+                        68.3073047858942,
+                        310.4052734375
+                    ],
+                    [
+                        264.22166246851384,
+                        310.4052734375
+                    ],
+                    [
+                        264.22166246851384,
+                        323.97265625
+                    ],
+                    [
+                        68.3073047858942,
+                        323.97265625
+                    ]
+                ]
+            },
+            {
+                "title": "3.3.1 Chunking Strategy",
+                "heading_level": null,
+                "page_id": 8,
+                "polygon": [
+                    [
+                        68.3073047858942,
+                        538.583984375
+                    ],
+                    [
+                        198.9168765743073,
+                        538.583984375
+                    ],
+                    [
+                        198.9168765743073,
+                        551.740234375
+                    ],
+                    [
+                        68.3073047858942,
+                        551.740234375
+                    ]
+                ]
+            },
+            {
+                "title": "3.3.2 Batch Prompting",
+                "heading_level": null,
+                "page_id": 9,
+                "polygon": [
+                    [
+                        69.6982421875,
+                        168.77001953125
+                    ],
+                    [
+                        188.578125,
+                        168.77001953125
+                    ],
+                    [
+                        188.578125,
+                        181.976318359375
+                    ],
+                    [
+                        69.6982421875,
+                        181.976318359375
+                    ]
+                ]
+            },
+            {
+                "title": "3.3.3 OBI subtask",
+                "heading_level": null,
+                "page_id": 9,
+                "polygon": [
+                    [
+                        70.243896484375,
+                        670.146484375
+                    ],
+                    [
+                        165.587890625,
+                        670.146484375
+                    ],
+                    [
+                        165.587890625,
+                        683.3843536376953
+                    ],
+                    [
+                        70.243896484375,
+                        683.3843536376953
+                    ]
+                ]
+            },
+            {
+                "title": "4 Experiments and Results",
+                "heading_level": null,
+                "page_id": 10,
+                "polygon": [
+                    [
+                        69.7763671875,
+                        80.00244140625
+                    ],
+                    [
+                        258.9345703125,
+                        80.00244140625
+                    ],
+                    [
+                        258.9345703125,
+                        97.11474609375
+                    ],
+                    [
+                        69.7763671875,
+                        97.11474609375
+                    ]
+                ]
+            },
+            {
+                "title": "4.1 Task A - Text2Onto",
+                "heading_level": null,
+                "page_id": 10,
+                "polygon": [
+                    [
+                        70.3740234375,
+                        280.37109375
+                    ],
+                    [
+                        202.1572265625,
+                        280.37109375
+                    ],
+                    [
+                        202.1572265625,
+                        295.453125
+                    ],
+                    [
+                        70.3740234375,
+                        295.453125
+                    ]
+                ]
+            },
+            {
+                "title": "4.2 Task B - Term Typing",
+                "heading_level": null,
+                "page_id": 11,
+                "polygon": [
+                    [
+                        70.187255859375,
+                        134.19140625
+                    ],
+                    [
+                        214.55859375,
+                        134.19140625
+                    ],
+                    [
+                        214.55859375,
+                        148.5
+                    ],
+                    [
+                        70.187255859375,
+                        148.5
+                    ]
+                ]
+            },
+            {
+                "title": "4.3 Task C - Taxonomy Discovery",
+                "heading_level": null,
+                "page_id": 12,
+                "polygon": [
+                    [
+                        70.00048828125,
+                        19.456787109375
+                    ],
+                    [
+                        263.267578125,
+                        19.456787109375
+                    ],
+                    [
+                        263.267578125,
+                        34.442138671875
+                    ],
+                    [
+                        70.00048828125,
+                        34.442138671875
+                    ]
+                ]
+            },
+            {
+                "title": "5 Conclusions",
+                "heading_level": null,
+                "page_id": 12,
+                "polygon": [
+                    [
+                        69.85107421875,
+                        455.94140625
+                    ],
+                    [
+                        173.91796875,
+                        455.94140625
+                    ],
+                    [
+                        173.91796875,
+                        473.73046875
+                    ],
+                    [
+                        69.85107421875,
+                        473.73046875
+                    ]
+                ]
+            },
+            {
+                "title": "Limitations",
+                "heading_level": null,
+                "page_id": 12,
+                "polygon": [
+                    [
+                        70.037841796875,
+                        655.1015625
+                    ],
+                    [
+                        148.21875,
+                        655.1015625
+                    ],
+                    [
+                        148.21875,
+                        671.5828094482422
+                    ],
+                    [
+                        70.037841796875,
+                        671.5828094482422
+                    ]
+                ]
+            },
+            {
+                "title": "Data availability statement",
+                "heading_level": null,
+                "page_id": 13,
+                "polygon": [
+                    [
+                        69.70166015625,
+                        18.006591796875
+                    ],
+                    [
+                        251.314453125,
+                        18.006591796875
+                    ],
+                    [
+                        251.314453125,
+                        34.8408203125
+                    ],
+                    [
+                        69.70166015625,
+                        34.8408203125
+                    ]
+                ]
+            },
+            {
+                "title": "Underlying and Related Material",
+                "heading_level": null,
+                "page_id": 13,
+                "polygon": [
+                    [
+                        69.85107421875,
+                        90.34716796875
+                    ],
+                    [
+                        290.162109375,
+                        90.34716796875
+                    ],
+                    [
+                        290.162109375,
+                        107.56781005859375
+                    ],
+                    [
+                        69.85107421875,
+                        107.56781005859375
+                    ]
+                ]
+            },
+            {
+                "title": "Author contributions",
+                "heading_level": null,
+                "page_id": 13,
+                "polygon": [
+                    [
+                        70.187255859375,
+                        163.58203125
+                    ],
+                    [
+                        214.55859375,
+                        163.58203125
+                    ],
+                    [
+                        214.55859375,
+                        180.404296875
+                    ],
+                    [
+                        70.187255859375,
+                        180.404296875
+                    ]
+                ]
+            },
+            {
+                "title": "Competing interests",
+                "heading_level": null,
+                "page_id": 13,
+                "polygon": [
+                    [
+                        70.261962890625,
+                        250.787109375
+                    ],
+                    [
+                        210.97265625,
+                        250.787109375
+                    ],
+                    [
+                        210.97265625,
+                        267.416015625
+                    ],
+                    [
+                        70.261962890625,
+                        267.416015625
+                    ]
+                ]
+            },
+            {
+                "title": "References",
+                "heading_level": null,
+                "page_id": 13,
+                "polygon": [
+                    [
+                        70.14990234375,
+                        309.375
+                    ],
+                    [
+                        149.93701171875,
+                        309.375
+                    ],
+                    [
+                        149.93701171875,
+                        326.00390625
+                    ],
+                    [
+                        70.14990234375,
+                        326.00390625
+                    ]
+                ]
+            }
+        ],
+        "page_stats": [
+            {
+                "page_id": 0,
+                "text_extraction_method": "pdftext",
+                "block_counts": [
+                    [
+                        "Span",
+                        89
+                    ],
+                    [
+                        "Line",
+                        43
+                    ],
+                    [
+                        "Text",
+                        6
+                    ],
+                    [
+                        "SectionHeader",
+                        2
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 1,
+                "text_extraction_method": "pdftext",
+                "block_counts": [
+                    [
+                        "Span",
+                        93
+                    ],
+                    [
+                        "Line",
+                        44
+                    ],
+                    [
+                        "Text",
+                        9
+                    ],
+                    [
+                        "SectionHeader",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 2,
+                "text_extraction_method": "pdftext",
+                "block_counts": [
+                    [
+                        "Span",
+                        201
+                    ],
+                    [
+                        "Line",
+                        49
+                    ],
+                    [
+                        "TableCell",
+                        42
+                    ],
+                    [
+                        "Text",
+                        3
+                    ],
+                    [
+                        "SectionHeader",
+                        3
+                    ],
+                    [
+                        "PageHeader",
+                        1
+                    ],
+                    [
+                        "Table",
+                        1
+                    ],
+                    [
+                        "Caption",
+                        1
+                    ],
+                    [
+                        "TextInlineMath",
+                        1
+                    ],
+                    [
+                        "Equation",
+                        1
+                    ],
+                    [
+                        "TableGroup",
+                        1
+                    ],
+                    [
+                        "Reference",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 3,
+                "text_extraction_method": "surya",
+                "block_counts": [
+                    [
+                        "Span",
+                        115
+                    ],
+                    [
+                        "Line",
+                        54
+                    ],
+                    [
+                        "TextInlineMath",
+                        6
+                    ],
+                    [
+                        "Equation",
+                        4
+                    ],
+                    [
+                        "Text",
+                        4
+                    ],
+                    [
+                        "PageHeader",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 4,
+                "text_extraction_method": "pdftext",
+                "block_counts": [
+                    [
+                        "Span",
+                        229
+                    ],
+                    [
+                        "Line",
+                        58
+                    ],
+                    [
+                        "Text",
+                        4
+                    ],
+                    [
+                        "TableCell",
+                        2
+                    ],
+                    [
+                        "PageHeader",
+                        1
+                    ],
+                    [
+                        "Table",
+                        1
+                    ],
+                    [
+                        "Caption",
+                        1
+                    ],
+                    [
+                        "SectionHeader",
+                        1
+                    ],
+                    [
+                        "TextInlineMath",
+                        1
+                    ],
+                    [
+                        "TableGroup",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 5,
+                "text_extraction_method": "pdftext",
+                "block_counts": [
+                    [
+                        "Span",
+                        295
+                    ],
+                    [
+                        "Line",
+                        50
+                    ],
+                    [
+                        "Text",
+                        6
+                    ],
+                    [
+                        "Equation",
+                        4
+                    ],
+                    [
+                        "PageHeader",
+                        1
+                    ],
+                    [
+                        "Code",
+                        1
+                    ],
+                    [
+                        "Caption",
+                        1
+                    ],
+                    [
+                        "SectionHeader",
+                        1
+                    ],
+                    [
+                        "TextInlineMath",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 6,
+                "text_extraction_method": "pdftext",
+                "block_counts": [
+                    [
+                        "Span",
+                        231
+                    ],
+                    [
+                        "Line",
+                        46
+                    ],
+                    [
+                        "Text",
+                        6
+                    ],
+                    [
+                        "Equation",
+                        3
+                    ],
+                    [
+                        "PageHeader",
+                        1
+                    ],
+                    [
+                        "Code",
+                        1
+                    ],
+                    [
+                        "Caption",
+                        1
+                    ],
+                    [
+                        "SectionHeader",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 7,
+                "text_extraction_method": "pdftext",
+                "block_counts": [
+                    [
+                        "Span",
+                        103
+                    ],
+                    [
+                        "Line",
+                        42
+                    ],
+                    [
+                        "Text",
+                        4
+                    ],
+                    [
+                        "ListItem",
+                        2
+                    ],
+                    [
+                        "SectionHeader",
+                        2
+                    ],
+                    [
+                        "PageHeader",
+                        1
+                    ],
+                    [
+                        "Figure",
+                        1
+                    ],
+                    [
+                        "Code",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 8,
+                "text_extraction_method": "surya",
+                "block_counts": [
+                    [
+                        "Line",
+                        53
+                    ],
+                    [
+                        "Span",
+                        32
+                    ],
+                    [
+                        "Text",
+                        5
+                    ],
+                    [
+                        "SectionHeader",
+                        2
+                    ],
+                    [
+                        "Equation",
+                        2
+                    ],
+                    [
+                        "PageHeader",
+                        1
+                    ],
+                    [
+                        "Caption",
+                        1
+                    ],
+                    [
+                        "TextInlineMath",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 9,
+                "text_extraction_method": "pdftext",
+                "block_counts": [
+                    [
+                        "Span",
+                        204
+                    ],
+                    [
+                        "Line",
+                        54
+                    ],
+                    [
+                        "Text",
+                        8
+                    ],
+                    [
+                        "Equation",
+                        4
+                    ],
+                    [
+                        "SectionHeader",
+                        2
+                    ],
+                    [
+                        "PageHeader",
+                        1
+                    ],
+                    [
+                        "Code",
+                        1
+                    ],
+                    [
+                        "Caption",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 10,
+                "text_extraction_method": "pdftext",
+                "block_counts": [
+                    [
+                        "Span",
+                        229
+                    ],
+                    [
+                        "TableCell",
+                        83
+                    ],
+                    [
+                        "Line",
+                        48
+                    ],
+                    [
+                        "Text",
+                        4
+                    ],
+                    [
+                        "SectionHeader",
+                        2
+                    ],
+                    [
+                        "Table",
+                        2
+                    ],
+                    [
+                        "Equation",
+                        1
+                    ],
+                    [
+                        "Reference",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 11,
+                "text_extraction_method": "pdftext",
+                "block_counts": [
+                    [
+                        "Span",
+                        130
+                    ],
+                    [
+                        "TableCell",
+                        57
+                    ],
+                    [
+                        "Line",
+                        32
+                    ],
+                    [
+                        "Text",
+                        3
+                    ],
+                    [
+                        "SectionHeader",
+                        1
+                    ],
+                    [
+                        "Table",
+                        1
+                    ],
+                    [
+                        "Reference",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 12,
+                "text_extraction_method": "pdftext",
+                "block_counts": [
+                    [
+                        "Span",
+                        154
+                    ],
+                    [
+                        "TableCell",
+                        48
+                    ],
+                    [
+                        "Line",
+                        44
+                    ],
+                    [
+                        "SectionHeader",
+                        3
+                    ],
+                    [
+                        "Text",
+                        3
+                    ],
+                    [
+                        "Caption",
+                        1
+                    ],
+                    [
+                        "Table",
+                        1
+                    ],
+                    [
+                        "TableGroup",
+                        1
+                    ],
+                    [
+                        "Reference",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            },
+            {
+                "page_id": 13,
+                "text_extraction_method": "pdftext",
+                "block_counts": [
+                    [
+                        "Span",
+                        165
+                    ],
+                    [
+                        "Line",
+                        40
+                    ],
+                    [
+                        "ListItem",
+                        12
+                    ],
+                    [
+                        "Reference",
+                        7
+                    ],
+                    [
+                        "SectionHeader",
+                        5
+                    ],
+                    [
+                        "Text",
+                        4
+                    ],
+                    [
+                        "ListGroup",
+                        1
+                    ]
+                ],
+                "block_metadata": {
+                    "llm_request_count": 0,
+                    "llm_error_count": 0,
+                    "llm_tokens_used": 0,
+                    "previous_text": "",
+                    "previous_type": "",
+                    "previous_order": 0
+                }
+            }
+        ],
+        "debug_data_path": "debug_data/paper2"
+    }
+}
