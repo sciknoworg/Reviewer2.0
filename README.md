@@ -1,5 +1,5 @@
 <p align="center">
-<img width="150" src="UI/images/logo.png" alt="Reviewer2.0">
+<img width="150" src="reviewer2/ui/images/logo.png" alt="Reviewer2.0">
 </p>
 
 <div align="center">
