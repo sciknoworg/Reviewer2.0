@@ -1,9 +1,8 @@
 import json
 import streamlit as st
-from UI import config as ui_config
-from UI import util
-
-import reviewer2 as REVIEWER2
+import reviewer2
+from reviewer2.ui import config as ui_config
+from reviewer2.ui import util
 
 sidebar_image_rounded = util.make_circle(ui_config.LOGO_PATH)
 # ---------------------------
@@ -70,7 +69,7 @@ if reset:
 
 if gen and uploaded is not None:
     file_bytes = uploaded.getvalue()
-    ai_reviews = REVIEWER2.review(file_bytes, uploaded.name) # Build reviews
+    ai_reviews = reviewer2.review(file_bytes, uploaded.name) # Build reviews
     st.session_state.paper_abstract = ai_reviews['abstract']
     st.session_state.paper_title = ai_reviews['title']
     st.session_state.reviews = ai_reviews['reviews']
@@ -94,7 +93,7 @@ if st.session_state.reviews:
     # Overall summary row
     scores = [v["score"] for v in st.session_state.reviews.values() if "score" in v]
     avg = sum(scores) / len(scores) if scores else 0.0
-    rec = REVIEWER2.overall_recommendation(avg)
+    rec = reviewer2.overall_recommendation(avg)
     st.markdown("<span class='badge'>Overall Recommendation</span>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
@@ -108,8 +107,8 @@ if st.session_state.reviews:
     st.markdown(ui_config.SCROLLABLE_TABS_STYLES, unsafe_allow_html=True)
 
     # Tabs per Rubrics
-    tabs = st.tabs([c["key"] for c in REVIEWER2.CRITERIA])
-    for i, c in enumerate(REVIEWER2.CRITERIA):
+    tabs = st.tabs([c["key"] for c in reviewer2.CRITERIA])
+    for i, c in enumerate(reviewer2.CRITERIA):
         with tabs[i]:
             rv = st.session_state.reviews.get(c["key"], {})
             st.markdown(f"### {c['key']}")
@@ -129,7 +128,7 @@ if st.session_state.reviews:
 
     # Export row
     st.markdown("---")
-    md = REVIEWER2.build_markdown_export(st.session_state.paper_title or "Unknown Title", st.session_state.reviews, avg, rec)
+    md = reviewer2.build_markdown_export(st.session_state.paper_title or "Unknown Title", st.session_state.reviews, avg, rec)
     json_blob = json.dumps({"title": st.session_state.paper_title,
                             "abstract": st.session_state.paper_abstract,
                             "average_score": avg, "recommendation": rec,
