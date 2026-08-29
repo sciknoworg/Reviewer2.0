@@ -1,0 +1,34 @@
+services:
+  grobid:
+    image: lfoppiano/grobid:0.9.0
+    ports:
+      - "8070:8070"
+    healthcheck:
+      # The grobid image ships neither curl nor wget; probe the port directly
+      # via bash's /dev/tcp (present since the base image is Ubuntu-derived).
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8070' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 180s
+
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      GROBID_URL: http://grobid:8070
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+    ports:
+      - "8000:8000"
+    depends_on:
+      grobid:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
