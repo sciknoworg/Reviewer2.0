@@ -2,6 +2,7 @@ import asyncio
 from typing import AsyncIterator
 
 from app.core.agents import run_supervisor_synthesis, run_worker_agent
+from app.core.citation_tools import DEFAULT_CITATION_PROVIDER, CitationProvider
 from app.core.ingestion import ingest_paper, section_paper
 from app.core.paper_tools import get_section_text
 from app.schemas import CriterionResult
@@ -21,15 +22,20 @@ def _overall_recommendation(avg_score: float) -> str:
     return "Reject"
 
 
-async def _run_and_tag(key: str, sections_data: dict, bibliography: list[dict]):
+async def _run_and_tag(key: str, sections_data: dict, bibliography: list[dict], citation_provider: CitationProvider):
     try:
-        result = await run_worker_agent(key, sections_data, bibliography)
+        result = await run_worker_agent(key, sections_data, bibliography, citation_provider)
         return key, result, None
     except Exception as e:
         return key, None, str(e)
 
 
-async def review_stream(file_bytes: bytes, filename: str, selected_keys: list[str]) -> AsyncIterator[dict]:
+async def review_stream(
+    file_bytes: bytes,
+    filename: str,
+    selected_keys: list[str],
+    citation_provider: CitationProvider = DEFAULT_CITATION_PROVIDER,
+) -> AsyncIterator[dict]:
     """
     Run the full multi-agent review pipeline, yielding progress events as they
     happen so the caller can stream them (e.g. over SSE) instead of blocking
@@ -42,7 +48,7 @@ async def review_stream(file_bytes: bytes, filename: str, selected_keys: list[st
 
         yield {"stage": "queued", "rubrics": selected_keys}
 
-        tasks = [_run_and_tag(key, sections_data, bibliography) for key in selected_keys]
+        tasks = [_run_and_tag(key, sections_data, bibliography, citation_provider) for key in selected_keys]
 
         results: dict[str, CriterionResult] = {}
         for coro in asyncio.as_completed(tasks):

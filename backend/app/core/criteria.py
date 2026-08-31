@@ -2,7 +2,7 @@
 # rubric picker reflects this automatically), and `agent_instructions` becomes
 # the system prompt for that rubric's dedicated worker agent (see agents.py).
 # "needs_citation_tools" marks the one rubric whose agent is also given the
-# reference-list/Semantic-Scholar tools.
+# reference-list/citation-lookup tools (see citation_tools.py).
 
 RUBRICS = [
     {
@@ -87,15 +87,16 @@ Look at the introduction and related work section as needed.
         "agent_instructions": """
 Evaluate the **Reference & Citation Quality** of this paper.
 - Use `list_references` to see the paper's parsed bibliography.
-- Use `semantic_scholar_lookup` to verify a representative sample of ~5-10
-  references (favor ones central to the paper's claims) actually exist in the
-  literature and check their reported venue/year/citation count for plausibility.
+- Use `citation_lookup` to verify a representative sample of ~5-10 references
+  (favor ones central to the paper's claims) actually exist in the literature
+  and check their reported metadata (venue/year/citation count, or a web
+  source) for plausibility.
   Do not look up every reference — sample enough to judge overall bibliography quality.
 - Assess whether citation coverage looks adequate for the paper's claims (use
   `get_section` on the related work/introduction if useful) and whether the
   reference list appears well-formed and appropriately used.
-Note any references you could not verify, but don't treat "not found on
-Semantic Scholar" alone as proof a work doesn't exist (coverage gaps happen).
+Note any references you could not verify, but don't treat a failed lookup
+alone as proof a work doesn't exist (coverage gaps happen).
 """,
     },
     {

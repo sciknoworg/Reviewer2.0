@@ -2,7 +2,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 
 from app.config import settings
-from app.core.citation_tools import build_citation_tools
+from app.core.citation_tools import DEFAULT_CITATION_PROVIDER, CitationProvider, build_citation_tools
 from app.core.criteria import RUBRICS_BY_KEY
 from app.core.paper_tools import build_paper_tools
 from app.schemas import CriterionResult
@@ -25,7 +25,12 @@ def _make_llm() -> ChatOpenAI:
     return ChatOpenAI(model=settings.REVIEWER_MODEL, api_key=settings.OPENAI_KEY, temperature=0.3)
 
 
-def build_worker_agent(rubric_key: str, sections_data: dict, bibliography: list[dict]):
+def build_worker_agent(
+    rubric_key: str,
+    sections_data: dict,
+    bibliography: list[dict],
+    citation_provider: CitationProvider = DEFAULT_CITATION_PROVIDER,
+):
     """
     Build one rubric's tool-using worker agent for a single request. Agents
     are built fresh per request (not cached) because their tools close over
@@ -35,7 +40,7 @@ def build_worker_agent(rubric_key: str, sections_data: dict, bibliography: list[
 
     tools = build_paper_tools(sections_data)
     if rubric["needs_citation_tools"]:
-        tools = tools + build_citation_tools(sections_data, bibliography)
+        tools = tools + build_citation_tools(sections_data, bibliography, citation_provider)
 
     return create_react_agent(
         _make_llm(),
@@ -45,8 +50,13 @@ def build_worker_agent(rubric_key: str, sections_data: dict, bibliography: list[
     )
 
 
-async def run_worker_agent(rubric_key: str, sections_data: dict, bibliography: list[dict]) -> CriterionResult:
-    agent = build_worker_agent(rubric_key, sections_data, bibliography)
+async def run_worker_agent(
+    rubric_key: str,
+    sections_data: dict,
+    bibliography: list[dict],
+    citation_provider: CitationProvider = DEFAULT_CITATION_PROVIDER,
+) -> CriterionResult:
+    agent = build_worker_agent(rubric_key, sections_data, bibliography, citation_provider)
     output = await agent.ainvoke({"messages": [("user", "Please conduct your review now.")]})
     return output["structured_response"]
 

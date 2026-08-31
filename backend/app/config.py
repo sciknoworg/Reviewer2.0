@@ -17,6 +17,7 @@ class Settings:
     ]
     MAX_UPLOAD_MB: int = int(os.environ.get("MAX_UPLOAD_MB", "20"))
     SEMANTIC_SCHOLAR_API_KEY: str = os.environ.get("SEMANTIC_SCHOLAR_API_KEY", "")
+    TAVILY_API_KEY: str = os.environ.get("TAVILY_API_KEY", "")
 
 
 settings = Settings()

@@ -116,6 +116,22 @@
             </div>
             <div id="rubric-list" class="rubric-list"></div>
           </div>
+
+          <div class="provider-picker">
+            <span class="card__title">Citation lookup source</span>
+            <p class="provider-picker__hint">Used by the Reference &amp; Citation Quality rubric to verify a sample of references.</p>
+            <div class="provider-picker__options">
+              <label class="provider-option">
+                <input type="radio" name="citation-provider" value="tavily" checked />
+                <span>Tavily <span class="provider-option__tag">Default</span></span>
+              </label>
+              <label class="provider-option">
+                <input type="radio" name="citation-provider" value="semantic_scholar" />
+                <span>Semantic Scholar</span>
+              </label>
+            </div>
+          </div>
+
           <div class="upload-card__actions">
             <button id="back-to-upload-btn" class="button button--ghost">Back</button>
             <button id="generate-btn" class="button button--primary" disabled>Generate review</button>

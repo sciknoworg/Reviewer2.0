@@ -62,6 +62,11 @@
     generateBtn.disabled = getSelectedRubrics().length === 0;
   }
 
+  function getSelectedCitationProvider() {
+    const checked = document.querySelector('input[name="citation-provider"]:checked');
+    return checked ? checked.value : "tavily";
+  }
+
   function selectFile(file) {
     selectedFile = file;
     fileNameEl.textContent = file.name;
@@ -132,7 +137,7 @@
     goToStep(3);
 
     try {
-      await submitPaperStream(selectedFile, selectedKeys, (event) => {
+      await submitPaperStream(selectedFile, selectedKeys, getSelectedCitationProvider(), (event) => {
         switch (event.stage) {
           case "queued":
             event.rubrics.forEach((key) => setProgressItemStatus(key, "running", "Reviewing…"));
@@ -169,6 +174,7 @@
     fileNameEl.hidden = true;
     continueBtn.disabled = true;
     setAllRubrics(true);
+    document.querySelector('input[name="citation-provider"][value="tavily"]').checked = true;
     refreshGenerateEnabled();
     clearError();
     highestReachedStep = 1;

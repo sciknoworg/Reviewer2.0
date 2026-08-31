@@ -9,10 +9,11 @@ async function fetchCriteria() {
 // Native EventSource only supports GET, but we need to POST a file, so we
 // read the streamed response body directly and parse "data: {...}\n\n"
 // frames out of it by hand.
-async function submitPaperStream(file, rubricKeys, onEvent) {
+async function submitPaperStream(file, rubricKeys, citationProvider, onEvent) {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("rubrics", rubricKeys.join(","));
+  formData.append("citation_provider", citationProvider);
 
   const res = await fetch(`${window.API_BASE_URL}/api/review`, {
     method: "POST",
